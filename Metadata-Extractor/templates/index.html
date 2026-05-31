@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Digital Forensics Metadata Extractor</title>
+    <meta name="description" content="A professional digital forensics utility to extract metadata, calculate cryptographic hashes (MD5, SHA-256), and generate forensic integrity reports.">
+    <!-- Google Fonts - Outfit -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom Style Sheet -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="dark-theme">
+    <!-- Header -->
+    <header class="app-header">
+        <div class="header-container">
+            <div class="brand">
+                <div class="logo-icon">
+                    <i class="fa-solid fa-shield-halved fa-beat-fade"></i>
+                </div>
+                <div class="brand-text">
+                    <h1>METADATA <span class="accent-cyan">EXTRACTOR</span></h1>
+                    <span class="sub-logo">Digital Forensics Investigation Portal</span>
+                </div>
+            </div>
+            <div class="controls">
+                <button id="theme-toggle-btn" class="control-btn" title="Toggle Theme" aria-label="Toggle dark and light theme">
+                    <i class="fa-solid fa-moon"></i>
+                </button>
+                <button id="clear-all-btn" class="control-btn danger-btn" title="Securely Wipe Forensic History" aria-label="Securely wipe history">
+                    <i class="fa-solid fa-trash-can"></i> Secure Wipe
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="app-container">
+        <!-- Stats Row -->
+        <section class="stats-container" aria-label="Forensic metrics">
+            <div class="stat-card" id="stat-processed">
+                <div class="stat-icon cyan-glow"><i class="fa-solid fa-file-shield"></i></div>
+                <div class="stat-info">
+                    <span class="stat-label">Processed Files</span>
+                    <h2 class="stat-value" id="count-files">0</h2>
+                </div>
+            </div>
+            <div class="stat-card" id="stat-size">
+                <div class="stat-icon purple-glow"><i class="fa-solid fa-database"></i></div>
+                <div class="stat-info">
+                    <span class="stat-label">Total Volume</span>
+                    <h2 class="stat-value" id="count-volume">0.00 KB</h2>
+                </div>
+            </div>
+            <div class="stat-card" id="stat-hashes">
+                <div class="stat-icon green-glow"><i class="fa-solid fa-key"></i></div>
+                <div class="stat-info">
+                    <span class="stat-label">Hashes Calculated</span>
+                    <h2 class="stat-value" id="count-hashes">0</h2>
+                </div>
+            </div>
+        </section>
+
+        <!-- Dropzone / Drag and Drop Area -->
+        <section class="upload-section">
+            <div id="dropzone" class="dropzone-area">
+                <input type="file" id="file-input" multiple name="files" class="file-hidden-input" accept=".jpg,.jpeg,.png,.gif,.bmp,.webp,.pdf,.docx,.mp3,.wav,.ogg,.flac,.m4a,.mp4,.avi,.mkv,.mov,.wmv,.flv">
+                <div class="dropzone-content">
+                    <div class="glow-scanner"></div>
+                    <div class="cloud-icon">
+                        <i class="fa-solid fa-cloud-arrow-up"></i>
+                    </div>
+                    <h2>Drag & Drop Investigative Files Here</h2>
+                    <p class="dropzone-sub">or click to browse local storage</p>
+                    <div class="supported-formats">
+                        <span class="format-badge"><i class="fa-solid fa-image"></i> Images (JPG, PNG)</span>
+                        <span class="format-badge"><i class="fa-solid fa-file-pdf"></i> Documents (PDF, DOCX)</span>
+                        <span class="format-badge"><i class="fa-solid fa-music"></i> Audio (MP3, WAV)</span>
+                        <span class="format-badge"><i class="fa-solid fa-video"></i> Video (MP4, MKV)</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Upload Queue Progress -->
+            <div id="upload-queue-container" class="queue-container hidden">
+                <h3><i class="fa-solid fa-list-check"></i> Analysis Queue</h3>
+                <div id="upload-queue-list" class="queue-list">
+                    <!-- Dynamic list loaded by JS -->
+                </div>
+            </div>
+        </section>
+
+        <!-- Searchable Results Datatable -->
+        <section class="results-section card">
+            <div class="table-header">
+                <h2><i class="fa-solid fa-table-list"></i> Forensic Investigation Log</h2>
+                <div class="table-actions">
+                    <div class="search-box">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input type="text" id="table-search" placeholder="Filter by name, hash, category...">
+                    </div>
+                    <div class="filter-group">
+                        <button class="filter-btn active" data-category="all">All</button>
+                        <button class="filter-btn" data-category="image"><i class="fa-solid fa-image"></i> Images</button>
+                        <button class="filter-btn" data-category="document"><i class="fa-solid fa-file-contract"></i> Docs</button>
+                        <button class="filter-btn" data-category="audio"><i class="fa-solid fa-volume-high"></i> Audio</button>
+                        <button class="filter-btn" data-category="video"><i class="fa-solid fa-film"></i> Video</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="table-responsive">
+                <table id="forensic-log-table">
+                    <thead>
+                        <tr>
+                            <th>File Details</th>
+                            <th>MIME Type</th>
+                            <th>MD5 Checksum</th>
+                            <th>SHA-256 Checksum</th>
+                            <th>Upload Time</th>
+                            <th>Forensic Report</th>
+                        </tr>
+                    </thead>
+                    <tbody id="forensic-log-body">
+                        <tr class="empty-row-placeholder">
+                            <td colspan="6" class="text-center text-muted">
+                                <div class="empty-state">
+                                    <i class="fa-solid fa-folder-open"></i>
+                                    <p>No files loaded. Import files above to initiate forensic metadata extraction.</p>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <!-- Slide-Out Inspector Drawer -->
+    <aside id="inspector-drawer" class="inspector-drawer" aria-label="Metadata Inspector">
+        <div class="drawer-header">
+            <div class="drawer-title-box">
+                <h2><i class="fa-solid fa-magnifying-glass-chart"></i> METADATA INSPECTOR</h2>
+                <span id="inspector-filename" class="drawer-subtitle">document.pdf</span>
+            </div>
+            <button id="close-drawer-btn" class="close-drawer-btn" title="Close Panel" aria-label="Close panel">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
+        <div class="drawer-tabs">
+            <button class="tab-btn active" data-tab="general-tab">General Info</button>
+            <button class="tab-btn" data-tab="hashes-tab">Integrity Hashes</button>
+            <button class="tab-btn" data-tab="metadata-tab">Embedded Metadata</button>
+            <button class="tab-btn" data-tab="raw-tab">Raw JSON</button>
+        </div>
+
+        <div class="drawer-content">
+            <!-- General Info Tab -->
+            <div id="general-tab" class="tab-panel active">
+                <div class="meta-section">
+                    <h3>File System Attributes</h3>
+                    <div class="meta-grid" id="inspector-general-grid">
+                        <!-- Loaded dynamically -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Hashes Tab -->
+            <div id="hashes-tab" class="tab-panel">
+                <div class="meta-section">
+                    <h3>Cryptographic Signatures</h3>
+                    <p class="section-desc">These secure block hashes identify the file content uniquely and verify its chain-of-custody.</p>
+                    
+                    <div class="hash-inspect-box">
+                        <label>MD5 Hash Signature</label>
+                        <div class="hash-field-wrapper">
+                            <code id="inspector-md5">Calculating...</code>
+                            <button class="copy-hash-btn" data-target="inspector-md5" title="Copy MD5"><i class="fa-regular fa-copy"></i></button>
+                        </div>
+                    </div>
+                    
+                    <div class="hash-inspect-box">
+                        <label>SHA-256 Hash Signature</label>
+                        <div class="hash-field-wrapper">
+                            <code id="inspector-sha256">Calculating...</code>
+                            <button class="copy-hash-btn" data-target="inspector-sha256" title="Copy SHA-256"><i class="fa-regular fa-copy"></i></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Embedded Metadata Tab -->
+            <div id="metadata-tab" class="tab-panel">
+                <div class="meta-section">
+                    <h3>Extracted Specifications</h3>
+                    <div class="meta-grid" id="inspector-specific-grid">
+                        <!-- Loaded dynamically -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Raw JSON Tab -->
+            <div id="raw-tab" class="tab-panel">
+                <div class="meta-section raw-json-section">
+                    <h3>JSON Source Code Data</h3>
+                    <pre><code id="inspector-raw-json" class="language-json">{}</code></pre>
+                </div>
+            </div>
+        </div>
+
+        <div class="drawer-footer">
+            <a href="#" id="inspector-download-pdf-btn" class="action-btn download-btn">
+                <i class="fa-solid fa-file-pdf"></i> Download Forensic Report
+            </a>
+        </div>
+    </aside>
+
+    <footer class="app-footer">
+        <p>&copy; 2026 Digital Forensics Metadata Extractor. Tamper-evident secure integrity protocol. Powered by Python + Flask.</p>
+    </footer>
+
+    <!-- Custom App Script -->
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
